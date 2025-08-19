@@ -33,6 +33,3 @@ print("Top Clans:", top_clans)
 with open("top_clans.csv", "w") as f:
     for clan_tag in top_clans:
         f.write(clan_tag + ",")
-
-  
-
