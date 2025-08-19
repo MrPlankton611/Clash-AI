@@ -22,7 +22,6 @@ def get_top_clans():
     if response.status_code == 200:
         data = response.json()
         data = data.get('items', [])
-        #Extract tag
         return [item.get('tag') for item in data]
     else:
         print(f"Error fetching top clans: {response.status_code} - {response.text}")
@@ -31,7 +30,6 @@ def get_top_clans():
 top_clans = get_top_clans()
 print("Top Clans:", top_clans)
 
-# Write top clans to a txt file
 with open("top_clans.csv", "w") as f:
     for clan_tag in top_clans:
         f.write(clan_tag + ",")
