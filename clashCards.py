@@ -61,7 +61,7 @@ def get_cards():
                 "deployTime": card.get('deployTime', None),
                 "movementSpeed": card.get('movementSpeed', None)
             }
-            # If statsByLevel is missing, add a default structure for levels 9-15
+            # If statsByLevel is missing, add a default structure for levels 9-15. 
             if not card_obj["statsByLevel"]:
                 card_obj["statsByLevel"] = {str(lvl): {
                     "hp": None,
