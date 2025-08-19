@@ -4,7 +4,7 @@ import json
 import os
 
 url = "https://clashroyale.fandom.com/wiki/"
-
+ 
 response = requests.get(url)
 soup = BeautifulSoup(response.content, 'html.parser')
 card_names = []

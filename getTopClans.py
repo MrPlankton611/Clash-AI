@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 import requests
 import json
-
+ 
 load_dotenv()
 CLASH_API_KEY = os.getenv("CLASH_API_KEY")
 BASE_URL = os.getenv("BASE_URL")

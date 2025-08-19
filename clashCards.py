@@ -11,7 +11,7 @@ BASE_URL = os.getenv("BASE_URL")
 
 CARDS_URL = f"{BASE_URL}/cards"
 REQUEST_DELAY_SECONDS = 0.15  # Delay in seconds between requests
-
+ 
 
 headers = {
     "Accept": "application/json",
