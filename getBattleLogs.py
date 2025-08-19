@@ -83,7 +83,7 @@ def print_progress_bar(iteration, total, prefix='', suffix='', length=40, fill='
 # print(battle_id_set)
 # print(len(battle_id_set))  # Print the length of the battle_id_set
 # Uncomment below to run for all players as before
-#hi
+
 total_players = len(top_players)
 for idx, i in enumerate(top_players, 1):
     print_progress_bar(idx, total_players, prefix='Progress', suffix=f'Player: {i}', color='\033[94m')

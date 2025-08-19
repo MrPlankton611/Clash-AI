@@ -57,3 +57,6 @@ with open("top_players.csv", "w") as f:
     for player_tag in top_players:
         f.write(player_tag.replace('#', '') + "\n")
     
+
+
+    
