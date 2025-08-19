@@ -92,3 +92,4 @@ for idx, i in enumerate(top_players, 1):
 print(f"Total battles accepted: {ACCEPTED_COUNT}")
 print(f"Total battles skipped: {SKIPPED_COUNT}")
 
+ 
