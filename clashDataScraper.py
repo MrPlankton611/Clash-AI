@@ -2,6 +2,8 @@ from bs4 import BeautifulSoup
 import requests
 import json
 import os
+import re
+
 
 url = "https://clashroyale.fandom.com/wiki/"
 #Remember that different rarities start at different levels
@@ -24,6 +26,9 @@ with open("clash_cards.json", "r") as f:
     # Replace spaces with underscores for multi-word names
     card_names = [name.replace(" ", "_") for name in card_names]
 
+def extract_number_in_parentheses(text):
+    match = re.search(r'\((\d+)\)', text)
+    return int(match.group(1)) if match else None
 
 def get_card_rarity(name):
     name = name.lower()
@@ -37,6 +42,9 @@ def get_card_rarity(name):
                 return card.get("rarity", None)
     return None
 
+
+TEST_CARD = None  # Example: 'Knight'
+
 def get_card_base_stats():
     with open("clash_cards.json", "r") as f:
         data = json.load(f)
@@ -49,16 +57,25 @@ def get_card_base_stats():
         } for stat in stats}
 
     for card_obj in data.get("cards", []):
+        if TEST_CARD and card_obj["name"].lower() != TEST_CARD.lower():
+            continue
         card = card_obj["name"].replace(" ", "_")
         card_space = card_obj["name"]
         print(f"Fetching base stats for card: {card}")
         url = f"https://clashroyale.fandom.com/wiki/{card}"
         response = requests.get(url)
         soup = BeautifulSoup(response.content, 'html.parser')
-        wiki_table = soup.findAll('table', {'class': 'wikitable'})
-        if len(wiki_table) < 2:
+        wiki_tables = soup.findAll('table', {'class': 'wikitable'})
+        stats_table = None
+        for table in wiki_tables:
+            header_row = table.find('tr')
+            if header_row:
+                header_cols = header_row.find_all(['th', 'td'])
+                if header_cols and header_cols[0].get_text(strip=True).lower() == 'level':
+                    stats_table = table
+                    break
+        if not stats_table:
             continue
-        stats_table = wiki_table[1]
         rows = stats_table.find_all('tr')
         stats = []
         for row in rows[1:]:
@@ -67,7 +84,17 @@ def get_card_base_stats():
                 level = cols[0].get_text(strip=True)
                 hitpoints = cols[1].get_text(strip=True).replace(',', '')
                 damage = cols[2].get_text(strip=True).replace(',', '')
+                if "x" in damage:
+                    if card == "Electro_Dragon":
+                        damage = damage[0:3]
+                    else:  
+                        damage = extract_number_in_parentheses(damage)
+                if card == "Goblin_Demolisher":
+                    damage = cols[4].get_text(strip=True).replace(',', '')
+                    print(damage)
+
                 dps = cols[3].get_text(strip=True).replace(',', '')
+                
                 stats.append({
                     "level": int(level),
                     "hitpoints": int(hitpoints),
@@ -79,16 +106,25 @@ def get_card_base_stats():
     for card_obj in data.get("supportCards", []):
         if "name" not in card_obj:
             continue
+        if TEST_CARD and card_obj["name"].lower() != TEST_CARD.lower():
+            continue
         card = card_obj["name"].replace(" ", "_")
         card_space = card_obj["name"]
         print(f"Fetching base stats for card: {card}")
         url = f"https://clashroyale.fandom.com/wiki/{card}"
         response = requests.get(url)
         soup = BeautifulSoup(response.content, 'html.parser')
-        wiki_table = soup.findAll('table', {'class': 'wikitable'})
-        if len(wiki_table) < 2:
+        wiki_tables = soup.findAll('table', {'class': 'wikitable'})
+        stats_table = None
+        for table in wiki_tables:
+            header_row = table.find('tr')
+            if header_row:
+                header_cols = header_row.find_all(['th', 'td'])
+                if header_cols and header_cols[0].get_text(strip=True).lower() == 'level':
+                    stats_table = table
+                    break
+        if not stats_table:
             continue
-        stats_table = wiki_table[1]
         rows = stats_table.find_all('tr')
         stats = []
         for row in rows[1:]:
