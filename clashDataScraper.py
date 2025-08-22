@@ -3,7 +3,7 @@ import requests
 import json
 import os
 import re
-
+import time
 
 url = "https://clashroyale.fandom.com/wiki/"
 #Remember that different rarities start at different levels
@@ -51,7 +51,7 @@ def get_card_base_stats():
 
     def update_stats(card_obj, stats):
         card_obj["statsByLevel"] = {str(stat["level"]): {
-            "hitpoints": stat["hitpoints"],
+            "hp": stat["hp"],
             "damage": stat["damage"],
             "dps": stat["dps"]
         } for stat in stats}
@@ -65,15 +65,41 @@ def get_card_base_stats():
         url = f"https://clashroyale.fandom.com/wiki/{card}"
         response = requests.get(url)
         soup = BeautifulSoup(response.content, 'html.parser')
-        wiki_tables = soup.findAll('table', {'class': 'wikitable'})
+        wiki_tables = soup.find_all('table', {'class': 'wikitable'})
         stats_table = None
+        is_building = False
+        stats = []
         for table in wiki_tables:
             header_row = table.find('tr')
             if header_row:
                 header_cols = header_row.find_all(['th', 'td'])
                 if header_cols and header_cols[0].get_text(strip=True).lower() == 'level':
-                    stats_table = table
-                    break
+                    if len(header_cols) > 2 and "hitpoints lost per second" in header_cols[2].get_text(strip=True).lower():
+                        print("This is a building")
+                        is_building = True
+                        for row in table.find_all('tr')[1:]:
+                            cells = row.find_all(['td'])
+                            if len(cells) < 5:
+                                continue
+                            level = cells[0].get_text(strip=True).replace(',', '')
+                            hitpoints = cells[1].get_text(strip=True).replace(',', '')
+                            damage = cells[3].get_text(strip=True).replace(',', '')
+                            dps = cells[4].get_text(strip=True).replace(',', '')
+                            stats.append({
+                                "level": int(level),
+                                "hp": int(hitpoints),
+                                "damage": int(damage),
+                                "dps": int(dps)
+                            })
+                        update_stats(card_obj, stats)
+                        with open("clash_cards.json", "w") as f:
+                            json.dump(data, f, indent=2)
+                        break  # Done with this card, go to next
+                    else:
+                        stats_table = table
+                        break
+        if is_building:
+            continue
         if not stats_table:
             continue
         rows = stats_table.find_all('tr')
@@ -94,55 +120,60 @@ def get_card_base_stats():
                     print(damage)
 
                 dps = cols[3].get_text(strip=True).replace(',', '')
-                
                 stats.append({
                     "level": int(level),
-                    "hitpoints": int(hitpoints),
+                    "hp": int(hitpoints),
                     "damage": int(damage),
                     "dps": int(dps)
                 })
         update_stats(card_obj, stats)
+        with open("clash_cards.json", "w") as f:
+            json.dump(data, f, indent=2)
 
-    for card_obj in data.get("supportCards", []):
-        if "name" not in card_obj:
-            continue
-        if TEST_CARD and card_obj["name"].lower() != TEST_CARD.lower():
-            continue
-        card = card_obj["name"].replace(" ", "_")
-        card_space = card_obj["name"]
-        print(f"Fetching base stats for card: {card}")
-        url = f"https://clashroyale.fandom.com/wiki/{card}"
-        response = requests.get(url)
-        soup = BeautifulSoup(response.content, 'html.parser')
-        wiki_tables = soup.findAll('table', {'class': 'wikitable'})
-        stats_table = None
-        for table in wiki_tables:
-            header_row = table.find('tr')
-            if header_row:
-                header_cols = header_row.find_all(['th', 'td'])
-                if header_cols and header_cols[0].get_text(strip=True).lower() == 'level':
-                    stats_table = table
-                    break
-        if not stats_table:
-            continue
-        rows = stats_table.find_all('tr')
-        stats = []
-        for row in rows[1:]:
-            cols = row.find_all('td')
-            if len(cols) >= 4:
-                level = cols[0].get_text(strip=True)
-                hitpoints = cols[1].get_text(strip=True).replace(',', '')
-                damage = cols[2].get_text(strip=True).replace(',', '')
-                dps = cols[3].get_text(strip=True).replace(',', '')
-                stats.append({
-                    "level": int(level),
-                    "hitpoints": int(hitpoints),
-                    "damage": int(damage),
-                    "dps": int(dps)
-                })
-        update_stats(card_obj, stats)
-
-    with open("clash_cards.json", "w") as f:
-        json.dump(data, f, indent=2)
+    # for card_obj in data.get("supportCards", []):
+    #     if "name" not in card_obj:
+    #         continue
+    #     if TEST_CARD and card_obj["name"].lower() != TEST_CARD.lower():
+    #         continue
+    #     card = card_obj["name"].replace(" ", "_")
+    #     card_space = card_obj["name"]
+    #     print(f"Fetching base staasdfasssts for card: {card}")
+    #     
+    #     url = f"https://clashroyale.fandom.com/wiki/{card}"
+    #     response = requests.get(url)
+    #     soup = BeautifulSoup(response.content, 'html.parser')
+    #     wiki_tables = soup.find_all('table', {'class': 'wikitable'})
+    #     stats_table = None
+    #     for table in wiki_tables:
+    #         header_row = table.find('tr')
+    #         if header_row:
+    #             header_cols = header_row.find_all(['th', 'td'])
+    #             if header_cols and header_cols[0].get_text(strip=True).lower() == 'level':
+    #                 stats_table = table
+    #                 break
+    #     if not stats_table:
+    #         continue
+    #     rows = stats_table.find_all('tr')
+    #     stats = []
+    #     for row in rows[1:]:
+    #         cols = row.find_all('td')
+    #         if len(cols) >= 4:
+    #             level = cols[0].get_text(strip=True)
+    #             hitpoints = cols[1].get_text(strip=True).replace(',', '')
+    #             damage = cols[2].get_text(strip=True).replace(',', '')
+    #             dps = cols[3].get_text(strip=True).replace(',', '')
+    #             stats.append({
+    #                 "level": int(level),
+    #                 "hp": int(hitpoints),
+    #                 "damage": int(damage),
+    #                 "dps": int(dps)
+    #             })
+    #     
+    #     update_stats(card_obj, stats)
+    # 
+    # with open("clash_cards.json", "w") as f:
+    #     
+    #     json.dump(data, f, indent=2)
+    # print("Finished")
 
 get_card_base_stats()
