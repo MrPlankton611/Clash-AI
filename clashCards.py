@@ -11,8 +11,9 @@ BASE_URL = os.getenv("BASE_URL")
 
 CARDS_URL = f"{BASE_URL}/cards"
 REQUEST_DELAY_SECONDS = 0.15  # Delay in seconds between requests
- 
 
+SPELL_CARDS = {'Arrows', 'Lightning', 'Zap', 'Tornado', 'Giant Snowball', 'Royal Delivery', 'Earthquake', 'Fireball', 'Earthquake', 'Goblin Barrel', 'Lightning', 'Freeze', 'Barbarian Barrel', 'Poison', 'Goblin Curse', 'Rage', 'Clone', 'Tornado', 'Void', 'Mirror', 'The Log', 'Graveyard'}
+print(len(SPELL_CARDS))
 headers = {
     "Accept": "application/json",
     "Authorization": f"Bearer {CLASH_API_KEY}"
