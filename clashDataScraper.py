@@ -19,7 +19,7 @@ card_rarities = {
     "champion": 11,
 }
 
-SPELL_CARDS = {'Arrows', 'Lightning', 'Zap', 'Tornado', 'Giant Snowball', 'Royal Delivery', 'Earthquake', 'Fireball', 'Earthquake', 'Goblin Barrel', 'Lightning', 'Freeze', 'Barbarian Barrel', 'Poison', 'Goblin Curse', 'Rage', 'Clone', 'Tornado', 'Void', 'Mirror', 'The Log', 'Graveyard'}
+SPELL_CARDS = {'Arrows', 'Lightning', 'Zap', 'Tornado', 'Giant_Snowball', 'Royal_Delivery', 'Earthquake', 'Fireball', 'Earthquake', 'Goblin_Barrel', 'Lightning', 'Freeze', 'Barbarian_Barrel', 'Poison', 'Goblin_Curse', 'Rage', 'Clone', 'Tornado', 'Void', 'Mirror', 'The_Log', 'Graveyard', 'Rocket'}
 SPIRIT_CARDS = {'Fire_Spirit', 'Ice_Spirit', 'Electro_Spirit', 'Heal_Spirit'}
 with open("clash_cards.json", "r") as f:
     data = json.load(f)
@@ -51,33 +51,33 @@ TEST_CARD = None  # Example: 'Knight'
 def get_card_base_stats():
     with open("clash_cards.json", "r") as f:
         data = json.load(f)
-
+    
     def update_stats(card_obj, stats):
         card_obj["statsByLevel"] = {str(stat["level"]): {
             "hp": stat["hp"],
             "damage": stat["damage"],
             "dps": stat["dps"]
         } for stat in stats}
-
+    
     for card_obj in data.get("cards", []):
         if TEST_CARD and card_obj["name"].lower() != TEST_CARD.lower():
-            continue
-        card = card_obj["name"].replace(" ", "_")
-        card_space = card_obj["name"]
-        print(f"Fetching base stats for card: {card}")
-        url = f"https://clashroyale.fandom.com/wiki/{card}"
+            continue 
+        card = card_obj["name"].replace(" ", "_")        
+        card_space = card_obj["name"]        
+        print(f"Fetching base stats for card: {card}")      
+        url = f"https://clashroyale.fandom.com/wiki/{card}"        
         response = requests.get(url)
         soup = BeautifulSoup(response.content, 'html.parser')
         wiki_tables = soup.find_all('table', {'class': 'wikitable'})
         stats_table = None
         is_building = False
-        stats = []
+        stats = []        
         for table in wiki_tables:
             header_row = table.find('tr')
             if header_row:
                 header_cols = header_row.find_all(['th', 'td'])
                 if header_cols and header_cols[0].get_text(strip=True).lower() == 'level':
-                    if len(header_cols) > 2 and "hitpoints lost per second" in header_cols[2].get_text(strip=True).lower():
+                    if len(header_cols) > 2 and "hitpoints lost per second" in header_cols[2].get_text(strip=True).lower() and card != "Elixir_Collector":
                         print("This is a building")
                         is_building = True
                         for row in table.find_all('tr')[1:]:
@@ -111,6 +111,18 @@ def get_card_base_stats():
             cols = row.find_all('td')
             if len(cols) >= 4 and header_cols[3].get_text(strip=True) != 'Crown Tower Damage':
                 if len(cols) >= 5 and header_cols[4].get_text(strip=True) == 'Healing Per Second':
+                    level = cols[0].get_text(strip=True)
+                    hitpoints = 0
+                    damage = cols[1].get_text(strip=True).replace(',', '')
+                    if 'x' in damage:
+                        damage = extract_number_in_parentheses(damage)
+                    dps = 0
+                    stats.append({
+                        "level": int(level),
+                        "hp": int(hitpoints),
+                        "damage": int(damage),
+                        "dps": int(dps)
+                    })
                     continue
                 level = cols[0].get_text(strip=True)
                 hitpoints = cols[1].get_text(strip=True).replace(',', '')
@@ -152,6 +164,32 @@ def get_card_base_stats():
                 damage = cols[2].get_text(strip=True).replace(',', '')
                 if 'x' in damage:
                     damage = damage[:2]
+                dps = 0
+                stats.append({
+                    "level": int(level),
+                    "hp": int(hitpoints),
+                    "damage": int(damage),
+                    "dps": int(dps)
+                })
+            elif card == "Wall_Breakers":
+                print("this is a wall breaker")
+                level = cols[0].get_text(strip=True)
+                hitpoints = cols[1].get_text(strip=True).replace(',', '')
+                damage = cols[2].get_text(strip=True).replace(',', '')
+                if 'x' in damage:
+                    damage = damage[:2]
+                dps = 0
+                stats.append({
+                    "level": int(level),
+                    "hp": int(hitpoints),
+                    "damage": int(damage),
+                    "dps": int(dps)
+                })
+            if card == "Elixir_Collector":
+                print("this is an elixir collector")
+                level = cols[0].get_text(strip=True)
+                hitpoints = cols[1].get_text(strip=True).replace(',', '')
+                damage = 0
                 dps = 0
                 stats.append({
                     "level": int(level),
