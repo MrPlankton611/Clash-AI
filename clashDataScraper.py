@@ -18,6 +18,9 @@ card_rarities = {
     "legendary": 9,
     "champion": 11,
 }
+
+SPELL_CARDS = {'Arrows', 'Lightning', 'Zap', 'Tornado', 'Giant Snowball', 'Royal Delivery', 'Earthquake', 'Fireball', 'Earthquake', 'Goblin Barrel', 'Lightning', 'Freeze', 'Barbarian Barrel', 'Poison', 'Goblin Curse', 'Rage', 'Clone', 'Tornado', 'Void', 'Mirror', 'The Log', 'Graveyard'}
+
 with open("clash_cards.json", "r") as f:
     data = json.load(f)
     card_names = [card["name"] for card in data.get("cards", [])]
@@ -106,10 +109,11 @@ def get_card_base_stats():
         stats = []
         for row in rows[1:]:
             cols = row.find_all('td')
-            if len(cols) >= 4:
+            if len(cols) >= 4 and header_cols[3].get_text(strip=True) != 'Crown Tower Damage':
                 level = cols[0].get_text(strip=True)
                 hitpoints = cols[1].get_text(strip=True).replace(',', '')
                 damage = cols[2].get_text(strip=True).replace(',', '')
+                dps = cols[3].get_text(strip=True).replace(',', '')
                 if "x" in damage:
                     if card == "Electro_Dragon":
                         damage = damage[0:3]
@@ -118,8 +122,21 @@ def get_card_base_stats():
                 if card == "Goblin_Demolisher":
                     damage = cols[4].get_text(strip=True).replace(',', '')
                     print(damage)
-
-                dps = cols[3].get_text(strip=True).replace(',', '')
+                stats.append({
+                    "level": int(level),
+                    "hp": int(hitpoints),
+                    "damage": int(damage),
+                    "dps": int(dps)
+                })
+                
+            elif card in SPELL_CARDS:
+                print("this is a spell")
+                level = cols[0].get_text(strip=True)
+                hitpoints = 0
+                damage = cols[1].get_text(strip=True).replace(',', '')
+                if 'x' in damage:
+                    damage = extract_number_in_parentheses(damage)
+                dps = 0
                 stats.append({
                     "level": int(level),
                     "hp": int(hitpoints),
