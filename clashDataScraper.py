@@ -20,7 +20,7 @@ card_rarities = {
 }
 
 SPELL_CARDS = {'Arrows', 'Lightning', 'Zap', 'Tornado', 'Giant Snowball', 'Royal Delivery', 'Earthquake', 'Fireball', 'Earthquake', 'Goblin Barrel', 'Lightning', 'Freeze', 'Barbarian Barrel', 'Poison', 'Goblin Curse', 'Rage', 'Clone', 'Tornado', 'Void', 'Mirror', 'The Log', 'Graveyard'}
-
+SPIRIT_CARDS = {'Fire_Spirit', 'Ice_Spirit', 'Electro_Spirit', 'Heal_Spirit'}
 with open("clash_cards.json", "r") as f:
     data = json.load(f)
     card_names = [card["name"] for card in data.get("cards", [])]
@@ -110,6 +110,8 @@ def get_card_base_stats():
         for row in rows[1:]:
             cols = row.find_all('td')
             if len(cols) >= 4 and header_cols[3].get_text(strip=True) != 'Crown Tower Damage':
+                if len(cols) >= 5 and header_cols[4].get_text(strip=True) == 'Healing Per Second':
+                    continue
                 level = cols[0].get_text(strip=True)
                 hitpoints = cols[1].get_text(strip=True).replace(',', '')
                 damage = cols[2].get_text(strip=True).replace(',', '')
@@ -136,6 +138,20 @@ def get_card_base_stats():
                 damage = cols[1].get_text(strip=True).replace(',', '')
                 if 'x' in damage:
                     damage = extract_number_in_parentheses(damage)
+                dps = 0
+                stats.append({
+                    "level": int(level),
+                    "hp": int(hitpoints),
+                    "damage": int(damage),
+                    "dps": int(dps)
+                })
+            elif card in SPIRIT_CARDS:
+                print("this is a spirit")
+                level = cols[0].get_text(strip=True)
+                hitpoints = cols[1].get_text(strip=True).replace(',', '')
+                damage = cols[2].get_text(strip=True).replace(',', '')
+                if 'x' in damage:
+                    damage = damage[:2]
                 dps = 0
                 stats.append({
                     "level": int(level),
