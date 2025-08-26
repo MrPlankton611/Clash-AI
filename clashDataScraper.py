@@ -46,7 +46,7 @@ def get_card_rarity(name):
     return None
 
 
-TEST_CARD = None  # Example: 'Knight'
+TEST_CARD = "Spirit Empress"  # Example: 'Knight'
 #hi  d
 def get_card_base_stats():
     with open("clash_cards.json", "r") as f:
@@ -109,7 +109,7 @@ def get_card_base_stats():
         stats = []
         for row in rows[1:]:
             cols = row.find_all('td')
-            if len(cols) >= 4 and header_cols[3].get_text(strip=True) != 'Crown Tower Damage' and card not in SPELL_CARDS:
+            if len(cols) >= 4 and header_cols[3].get_text(strip=True) != 'Crown Tower Damage' and card not in SPELL_CARDS and card != "Spirit_Empress":
                 if len(cols) >= 5 and header_cols[4].get_text(strip=True) == 'Healing Per Second':
                     level = cols[0].get_text(strip=True)
                     hitpoints = 0
@@ -191,6 +191,20 @@ def get_card_base_stats():
                 hitpoints = cols[1].get_text(strip=True).replace(',', '')
                 damage = 0
                 dps = 0
+                stats.append({
+                    "level": int(level),
+                    "hp": int(hitpoints),
+                    "damage": int(damage),
+                    "dps": int(dps)
+                })
+            elif card == "Spirit_Empress":
+                print("this is a spirit empress")
+                level = cols[0].get_text(strip=True)
+                hitpoints = cols[1].get_text(strip=True).replace('.', '')
+                damage = cols[3].get_text(strip=True).replace(',', '')
+                if 'x' in damage:
+                    damage = damage[:2]
+                dps = cols[4].get_text(strip=True).replace(',', '')
                 stats.append({
                     "level": int(level),
                     "hp": int(hitpoints),
