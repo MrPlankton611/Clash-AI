@@ -46,7 +46,7 @@ def get_card_rarity(name):
     return None
 
 
-TEST_CARD = "Void"  # Example: 'Knight'
+TEST_CARD = None  # Example: 'Knight'
 
 def get_card_base_stats():
     with open("clash_cards.json", "r") as f:
@@ -109,7 +109,7 @@ def get_card_base_stats():
         stats = []
         for row in rows[1:]:
             cols = row.find_all('td')
-            if len(cols) >= 4 and header_cols[3].get_text(strip=True) != 'Crown Tower Damage' and card != "Void":
+            if len(cols) >= 4 and header_cols[3].get_text(strip=True) != 'Crown Tower Damage' and card not in SPELL_CARDS:
                 if len(cols) >= 5 and header_cols[4].get_text(strip=True) == 'Healing Per Second':
                     level = cols[0].get_text(strip=True)
                     hitpoints = 0
@@ -148,7 +148,7 @@ def get_card_base_stats():
                 level = cols[0].get_text(strip=True)
                 hitpoints = 0
                 damage = cols[1].get_text(strip=True).replace(',', '')
-                if 'x' in damage:
+                if 'x' in damage or 'X' in damage:
                     damage = extract_number_in_parentheses(damage)
                 dps = 0
                 stats.append({
