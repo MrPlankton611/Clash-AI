@@ -1,3 +1,10 @@
+def add_stat(stats, level, hp, damage, dps):
+    stats.append({
+        "level": int(level),
+        "hp": int(hp),
+        "damage": int(damage),
+        "dps": int(dps)
+    })
 from bs4 import BeautifulSoup
 import requests
 import json
@@ -46,7 +53,7 @@ def get_card_rarity(name):
     return None
 
 
-TEST_CARD = None  # Example: 'Knight'
+TEST_CARD = "Electro Spirit"  # Example: 'Knight'
 #hi  d
 def get_card_base_stats():
     with open("clash_cards.json", "r") as f:
@@ -88,12 +95,7 @@ def get_card_base_stats():
                             hitpoints = cells[1].get_text(strip=True).replace(',', '')
                             damage = cells[3].get_text(strip=True).replace(',', '')
                             dps = cells[4].get_text(strip=True).replace(',', '')
-                            stats.append({
-                                "level": int(level),
-                                "hp": int(hitpoints),
-                                "damage": int(damage),
-                                "dps": int(dps)
-                            })
+                            add_stat(stats, level, hitpoints, damage, dps)
                         update_stats(card_obj, stats)
                         with open("clash_cards.json", "w") as f:
                             json.dump(data, f, indent=2)
@@ -117,12 +119,7 @@ def get_card_base_stats():
                     if 'x' in damage:
                         damage = extract_number_in_parentheses(damage)
                     dps = 0
-                    stats.append({
-                        "level": int(level),
-                        "hp": int(hitpoints),
-                        "damage": int(damage),
-                        "dps": int(dps)
-                    })
+                    add_stat(stats, level, hitpoints, damage, dps)
                     continue
                 level = cols[0].get_text(strip=True)
                 hitpoints = cols[1].get_text(strip=True).replace(',', '')
@@ -136,12 +133,7 @@ def get_card_base_stats():
                 if card == "Goblin_Demolisher":
                     damage = cols[4].get_text(strip=True).replace(',', '')
                     print(damage)
-                stats.append({
-                    "level": int(level),
-                    "hp": int(hitpoints),
-                    "damage": int(damage),
-                    "dps": int(dps)
-                })
+                add_stat(stats, level, hitpoints, damage, dps)
                 
             elif card in SPELL_CARDS:
                 print("this is a spell")
@@ -151,26 +143,16 @@ def get_card_base_stats():
                 if 'x' in damage or 'X' in damage:
                     damage = extract_number_in_parentheses(damage)
                 dps = 0
-                stats.append({
-                    "level": int(level),
-                    "hp": int(hitpoints),
-                    "damage": int(damage),
-                    "dps": int(dps)
-                })
+                add_stat(stats, level, hitpoints, damage, dps)
             elif card in SPIRIT_CARDS:
                 print("this is a spirit")
                 level = cols[0].get_text(strip=True)
                 hitpoints = cols[1].get_text(strip=True).replace(',', '')
                 damage = cols[2].get_text(strip=True).replace(',', '')
                 if 'x' in damage:
-                    damage = damage[:2]
+                    damage = damage[:3]
                 dps = 0
-                stats.append({
-                    "level": int(level),
-                    "hp": int(hitpoints),
-                    "damage": int(damage),
-                    "dps": int(dps)
-                })
+                add_stat(stats, level, hitpoints, damage, dps)
             elif card == "Wall_Breakers":
                 print("this is a wall breaker")
                 level = cols[0].get_text(strip=True)
@@ -179,24 +161,14 @@ def get_card_base_stats():
                 if 'x' in damage:
                     damage = damage[:2]
                 dps = 0
-                stats.append({
-                    "level": int(level),
-                    "hp": int(hitpoints),
-                    "damage": int(damage),
-                    "dps": int(dps)
-                })
+                add_stat(stats, level, hitpoints, damage, dps)
             elif card == "Elixir_Collector":
                 print("this is an elixir collector")
                 level = cols[0].get_text(strip=True)
                 hitpoints = cols[1].get_text(strip=True).replace(',', '')
                 damage = 0
                 dps = 0
-                stats.append({
-                    "level": int(level),
-                    "hp": int(hitpoints),
-                    "damage": int(damage),
-                    "dps": int(dps)
-                })
+                add_stat(stats, level, hitpoints, damage, dps)
             elif card == "Spirit_Empress":
                 print("this is a spirit empress")
                 level = cols[0].get_text(strip=True)
@@ -205,12 +177,7 @@ def get_card_base_stats():
                 if 'x' in damage:
                     damage = damage[:2]
                 dps = cols[4].get_text(strip=True).replace(',', '')
-                stats.append({
-                    "level": int(level),
-                    "hp": int(hitpoints),
-                    "damage": int(damage),
-                    "dps": int(dps)
-                })
+                add_stat(stats, level, hitpoints, damage, dps)
         update_stats(card_obj, stats)
         with open("clash_cards.json", "w") as f:
             json.dump(data, f, indent=2)
@@ -247,12 +214,7 @@ def get_card_base_stats():
                 hitpoints = cols[1].get_text(strip=True).replace(',', '')
                 damage = cols[2].get_text(strip=True).replace(',', '')
                 dps = cols[3].get_text(strip=True).replace(',', '')
-                stats.append({
-                    "level": int(level),
-                    "hp": int(hitpoints),
-                    "damage": int(damage),
-                    "dps": int(dps)
-                })
+                add_stat(stats, level, hitpoints, damage, dps)
         
         update_stats(card_obj, stats)
     
