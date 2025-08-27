@@ -5,6 +5,31 @@ def add_stat(stats, level, hp, damage, dps):
         "damage": int(damage),
         "dps": int(dps)
     })
+
+def fill_missing_levels(stats, min_level=1, max_level=15):
+    """
+    Given a list of stats dicts (with keys: level, hp, damage, dps),
+    fill in missing levels using the 1.1 scaling formula based on the closest available level (preferably 11).
+    Returns a new list of stats for all levels min_level to max_level.
+    """
+    stats_by_level = {s["level"]: s for s in stats}
+    baseline_level = 11 if 11 in stats_by_level else min(stats_by_level.keys(), key=lambda x: abs(x-11))
+    baseline = stats_by_level[baseline_level]
+    filled_stats = []
+    for lvl in range(min_level, max_level+1):
+        if lvl in stats_by_level:
+            filled_stats.append(stats_by_level[lvl])
+        else:
+            hp = round(baseline["hp"] * (1.1 ** (lvl - baseline_level)))
+            damage = round(baseline["damage"] * (1.1 ** (lvl - baseline_level)))
+            dps = round(baseline["dps"] * (1.1 ** (lvl - baseline_level)))
+            filled_stats.append({
+                "level": lvl,
+                "hp": hp,
+                "damage": damage,
+                "dps": dps
+            })
+    return filled_stats
 from bs4 import BeautifulSoup
 import requests
 import json
@@ -53,18 +78,20 @@ def get_card_rarity(name):
     return None
 
 
-TEST_CARD = "Electro Spirit"  # Example: 'Knight'
-#hi  d
+TEST_CARD = None  # Example: 'Knight'
+
 def get_card_base_stats():
     with open("clash_cards.json", "r") as f:
         data = json.load(f)
     
     def update_stats(card_obj, stats):
+        # Fill in missing levels for a complete dataset
+        full_stats = fill_missing_levels(stats)
         card_obj["statsByLevel"] = {str(stat["level"]): {
             "hp": stat["hp"],
             "damage": stat["damage"],
             "dps": stat["dps"]
-        } for stat in stats}
+        } for stat in full_stats}
     
     for card_obj in data.get("cards", []):
         if TEST_CARD and card_obj["name"].lower() != TEST_CARD.lower():
