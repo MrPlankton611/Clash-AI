@@ -1,9 +1,34 @@
+def _to_int(val, default=0):
+    """Safely convert a string/number to int. Handles '', '—', 'N/A', None, and commas."""
+    if val is None:
+        return default
+    if isinstance(val, (int, float)):
+        try:
+            return int(round(val))
+        except Exception:
+            return default
+    s = str(val).strip()
+    if not s or s in {"—", "N/A", "n/a", "na", "N•A"}:
+        return default
+    # Remove commas and non-digit trailing/leading parts
+    s = s.replace(",", "").replace("·", "").replace("%", "")
+    # Extract first integer found
+    import re as _re
+    m = _re.search(r"-?\d+", s)
+    if not m:
+        return default
+    try:
+        return int(m.group(0))
+    except Exception:
+        return default
+
+
 def add_stat(stats, level, hp, damage, dps):
     stats.append({
-        "level": int(level),
-        "hp": int(hp),
-        "damage": int(damage),
-        "dps": int(dps)
+        "level": _to_int(level),
+        "hp": _to_int(hp),
+        "damage": _to_int(damage),
+        "dps": _to_int(dps)
     })
 
 def fill_missing_levels(stats, min_level=1, max_level=15):
@@ -36,6 +61,50 @@ import json
 import os
 import re
 import time
+
+def _extract_paren_multiplier(text):
+    """If text contains something like '123 (x3)', return 3, else None."""
+    m = re.search(r"\(x(\d+)\)", text, re.IGNORECASE)
+    if m:
+        try:
+            return int(m.group(1))
+        except Exception:
+            return None
+    return None
+
+def _parse_damage_cell(text):
+    """Parse damage cell values including patterns like '132 (x3)' or '150x3'. Returns an int."""
+    if text is None:
+        return 0
+    s = str(text).strip().replace(",", "")
+    if not s:
+        return 0
+    # Prefer explicit number in parentheses (xN)
+    mult = _extract_paren_multiplier(s)
+    if mult and re.search(r"\d+", s):
+        # take the first integer in the string as base
+        base_m = re.search(r"\d+", s)
+        base = int(base_m.group(0)) if base_m else 0
+        return base * mult
+    # Handle '150x3' or '150 X 3'
+    m = re.findall(r"\d+", s)
+    if len(m) >= 2 and ("x" in s.lower() or "×" in s):
+        try:
+            return int(m[0]) * int(m[1])
+        except Exception:
+            pass
+    # Fallback to first number
+    try:
+        return int(m[0]) if m else 0
+    except Exception:
+        return _to_int(s, 0)
+
+def _headers_map(table):
+    header_row = table.find('tr')
+    cols = header_row.find_all(['th', 'td']) if header_row else []
+    headers = [c.get_text(strip=True) for c in cols]
+    norm = [re.sub(r"[^a-z0-9]+", " ", h.lower()).strip() for h in headers]
+    return headers, norm, {n: i for i, n in enumerate(norm)}
 
 url = "https://clashroyale.fandom.com/wiki/"
 #Remember that different rarities start at different levels
@@ -205,6 +274,13 @@ def get_card_base_stats():
                     damage = damage[:2]
                 dps = cols[4].get_text(strip=True).replace(',', '')
                 add_stat(stats, level, hitpoints, damage, dps)
+            elif card == "Vines":
+                print("This is vines")
+                level = cols[0].get_text(strip=True)
+                hitpoints = 0
+                damage = cols[1].get_text(strip=True).replace(',', '')
+                add_stat(stats, level, hitpoints, damage, 0)
+        
         update_stats(card_obj, stats)
         with open("clash_cards.json", "w") as f:
             json.dump(data, f, indent=2)
