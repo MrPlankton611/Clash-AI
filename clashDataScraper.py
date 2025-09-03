@@ -148,7 +148,7 @@ def get_card_rarity(name):
 
 
 TEST_CARD = None  # Example: 'Knight'
-
+#hi
 def get_card_base_stats():
     with open("clash_cards.json", "r") as f:
         data = json.load(f)
