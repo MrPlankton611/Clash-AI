@@ -147,7 +147,7 @@ def get_card_rarity(name):
 
 
 TEST_CARD = None  # Example: 'Knight'
-#hi
+
 def get_card_base_stats():
     with open("clash_cards.json", "r") as f:
         data = json.load(f)
@@ -175,111 +175,113 @@ def get_card_base_stats():
         is_building = False
         stats = []        
         for table in wiki_tables:
-            header_row = table.find('tr')
-            if header_row:
-                header_cols = header_row.find_all(['th', 'td'])
-                if header_cols and header_cols[0].get_text(strip=True).lower() == 'level':
-                    if len(header_cols) > 2 and "hitpoints lost per second" in header_cols[2].get_text(strip=True).lower() and card != "Elixir_Collector":
-                        print("This is a building")
-                        is_building = True
-                        for row in table.find_all('tr')[1:]:
-                            cells = row.find_all(['td'])
-                            if len(cells) < 5:
-                                continue
-                            level = cells[0].get_text(strip=True).replace(',', '')
-                            hitpoints = cells[1].get_text(strip=True).replace(',', '')
-                            damage = cells[3].get_text(strip=True).replace(',', '')
-                            dps = cells[4].get_text(strip=True).replace(',', '')
-                            add_stat(stats, level, hitpoints, damage, dps)
-                        update_stats(card_obj, stats)
-                        with open("clash_cards.json", "w") as f:
-                            json.dump(data, f, indent=2)
-                        break  # Done with this card, go to next
-                    else:
-                        stats_table = table
-                        break
+            headers, norm, norm_idx = _headers_map(table)
+            if not headers:
+                continue
+            if norm and norm[0] == 'level':
+                # Detect building-style tables by presence of 'hitpoints lost per second'
+                if any('hitpoints lost per second' in h.lower() for h in headers) and card != "Elixir_Collector":
+                    print("This is a building")
+                    is_building = True
+                    for row in table.find_all('tr')[1:]:
+                        cells = row.find_all(['td'])
+                        if len(cells) < 5:
+                            continue
+                        level = cells[0].get_text(strip=True)
+                        hitpoints = cells[1].get_text(strip=True)
+                        damage = cells[3].get_text(strip=True)
+                        dps = cells[4].get_text(strip=True)
+                        add_stat(stats, level, hitpoints, damage, dps)
+                    update_stats(card_obj, stats)
+                    with open("clash_cards.json", "w") as f:
+                        json.dump(data, f, indent=2)
+                    break  # Done with this card, go to next
+                else:
+                    stats_table = table
+                    break
         if is_building:
             continue
         if not stats_table:
             continue
         rows = stats_table.find_all('tr')
         stats = []
+        # Build flexible column index map using normalized headers
+        headers, norm, norm_idx = _headers_map(stats_table)
+        # Common header variants
+        idx_level = norm_idx.get('level')
+        idx_hp = None
+        for key in ['hitpoints', 'hp']:
+            if key in norm_idx:
+                idx_hp = norm_idx[key]
+                break
+        idx_damage = None
+        for key in ['damage', 'area damage', 'spell damage', 'death damage']:
+            if key in norm_idx:
+                idx_damage = norm_idx[key]
+                break
+        idx_dps = norm_idx.get('dps')
+
         for row in rows[1:]:
             cols = row.find_all('td')
-            if len(cols) >= 4 and header_cols[3].get_text(strip=True) != 'Crown Tower Damage' and card not in SPELL_CARDS and card != "Spirit_Empress":
-                if len(cols) >= 5 and header_cols[4].get_text(strip=True) == 'Healing Per Second':
-                    level = cols[0].get_text(strip=True)
-                    hitpoints = 0
-                    damage = cols[1].get_text(strip=True).replace(',', '')
-                    if 'x' in damage:
-                        damage = extract_number_in_parentheses(damage)
-                    dps = 0
-                    add_stat(stats, level, hitpoints, damage, dps)
-                    continue
-                level = cols[0].get_text(strip=True)
-                hitpoints = cols[1].get_text(strip=True).replace(',', '')
-                damage = cols[2].get_text(strip=True).replace(',', '')
-                dps = cols[3].get_text(strip=True).replace(',', '')
-                if "x" in damage:
-                    if card == "Electro_Dragon":
-                        damage = damage[0:3]
-                    else:  
-                        damage = extract_number_in_parentheses(damage)
-                if card == "Goblin_Demolisher":
-                    damage = cols[4].get_text(strip=True).replace(',', '')
-                    print(damage)
+            if not cols:
+                continue
+            # Try default troop parsing
+            if idx_level is not None and idx_hp is not None and idx_damage is not None and idx_dps is not None and card not in SPELL_CARDS and card != "Spirit_Empress":
+                level = cols[idx_level].get_text(strip=True) if idx_level < len(cols) else ''
+                hitpoints = cols[idx_hp].get_text(strip=True) if idx_hp < len(cols) else '0'
+                damage_text = cols[idx_damage].get_text(strip=True) if idx_damage < len(cols) else '0'
+                dps = cols[idx_dps].get_text(strip=True) if idx_dps < len(cols) else '0'
+                damage = _parse_damage_cell(damage_text)
+                # Special case adjustments
+                if card == "Goblin_Demolisher" and len(cols) > 4:
+                    damage = _to_int(cols[4].get_text(strip=True))
                 add_stat(stats, level, hitpoints, damage, dps)
-                
-            elif card in SPELL_CARDS:
-                print("this is a spell")
-                level = cols[0].get_text(strip=True)
+                continue
+
+            # Spell-like rows (no HP, no DPS), use cost+damage style tables
+            if card in SPELL_CARDS or (idx_level is not None and idx_damage is not None and idx_hp is None and idx_dps is None):
+                print("this is a spell-like table")
+                level = cols[idx_level].get_text(strip=True) if idx_level < len(cols) else ''
                 hitpoints = 0
-                damage = cols[1].get_text(strip=True).replace(',', '')
-                if 'x' in damage or 'X' in damage:
-                    damage = extract_number_in_parentheses(damage)
+                damage_text = cols[idx_damage].get_text(strip=True) if idx_damage < len(cols) else '0'
+                damage = _parse_damage_cell(damage_text)
                 dps = 0
                 add_stat(stats, level, hitpoints, damage, dps)
-            elif card in SPIRIT_CARDS:
+                continue
+
+            # Spirits have HP but no DPS
+            if card in SPIRIT_CARDS:
                 print("this is a spirit")
-                level = cols[0].get_text(strip=True)
-                hitpoints = cols[1].get_text(strip=True).replace(',', '')
-                damage = cols[2].get_text(strip=True).replace(',', '')
-                if 'x' in damage:
-                    damage = damage[:3]
-                dps = 0
-                add_stat(stats, level, hitpoints, damage, dps)
-            elif card == "Wall_Breakers":
+                level = cols[idx_level].get_text(strip=True) if idx_level is not None and idx_level < len(cols) else ''
+                hp_idx = idx_hp if idx_hp is not None else (1 if len(cols) > 1 else None)
+                dmg_idx = idx_damage if idx_damage is not None else (2 if len(cols) > 2 else None)
+                hitpoints = cols[hp_idx].get_text(strip=True) if hp_idx is not None else '0'
+                damage_text = cols[dmg_idx].get_text(strip=True) if dmg_idx is not None else '0'
+                damage = _parse_damage_cell(damage_text)
+                add_stat(stats, level, hitpoints, damage, 0)
+                continue
+
+            # Specifics
+            if card == "Wall_Breakers":
                 print("this is a wall breaker")
                 level = cols[0].get_text(strip=True)
-                hitpoints = cols[1].get_text(strip=True).replace(',', '')
-                damage = cols[2].get_text(strip=True).replace(',', '')
-                if 'x' in damage:
-                    damage = damage[:2]
-                dps = 0
-                add_stat(stats, level, hitpoints, damage, dps)
-            elif card == "Elixir_Collector":
+                hitpoints = cols[1].get_text(strip=True)
+                damage = _parse_damage_cell(cols[2].get_text(strip=True))
+                add_stat(stats, level, hitpoints, damage, 0)
+                continue
+            if card == "Elixir_Collector":
                 print("this is an elixir collector")
                 level = cols[0].get_text(strip=True)
-                hitpoints = cols[1].get_text(strip=True).replace(',', '')
-                damage = 0
-                dps = 0
-                add_stat(stats, level, hitpoints, damage, dps)
-            elif card == "Spirit_Empress":
+                hitpoints = cols[1].get_text(strip=True)
+                add_stat(stats, level, hitpoints, 0, 0)
+                continue
+            if card == "Spirit_Empress":
                 print("this is a spirit empress")
                 level = cols[0].get_text(strip=True)
                 hitpoints = cols[1].get_text(strip=True).replace('.', '')
-                damage = cols[3].get_text(strip=True).replace(',', '')
-                if 'x' in damage:
-                    damage = damage[:2]
-                dps = cols[4].get_text(strip=True).replace(',', '')
+                damage = _parse_damage_cell(cols[3].get_text(strip=True))
+                dps = cols[4].get_text(strip=True)
                 add_stat(stats, level, hitpoints, damage, dps)
-            elif card == "Vines":
-                print("This is vines")
-                level = cols[0].get_text(strip=True)
-                hitpoints = 0
-                damage = cols[1].get_text(strip=True).replace(',', '')
-                add_stat(stats, level, hitpoints, damage, 0)
-        
         update_stats(card_obj, stats)
         with open("clash_cards.json", "w") as f:
             json.dump(data, f, indent=2)
